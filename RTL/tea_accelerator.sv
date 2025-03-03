@@ -7,11 +7,11 @@ module tea_accel(
     input logic i_clk,                      // synchronizing clock
     input logic i_rst,                      // synchronous active-high reset
 
-    input logic [127:0] i_key               // 128-bit encryption key
+    input logic [127:0] i_key,              // 128-bit encryption key
     
     input logic i_axis_valid_s,             // asserted by upstream circuit when it is ready to transmit the input block
     output logic o_axis_ready_s,            // asserted to request input block fromt he upstream circuit
-    input logic [63:0] i_axis_data_s        // the input block to be encrypted  
+    input logic [63:0] i_axis_data_s,       // the input block to be encrypted  
 
     output logic o_axis_valid_m,            // asserted to inform downstream circuit that data is ready
     input logic i_axis_ready_m,             // asserted by downstream circuit to rquest encrypted data
@@ -25,6 +25,12 @@ module tea_accel(
     logic [31:0] k0, k1, k2, k3;
     logic [63:0] output_data_reg = 0;
 
+    // state enumeration
+    localparam IDLE = 2'b00;
+    localparam LOADING = 2'b01;
+    localparam PROCESSING = 2'b10;
+    localparam DONE = 2'b11;
+
     // delta constant apparently adds non-linearity
     localparam DELTA = 32'h9E3779B9;
 
@@ -36,6 +42,16 @@ module tea_accel(
     assign k2 = i_key[95:64];
     assign k3 = i_key[127:96];
     
+    // combinatorial block for state transitions
+    always @(*) begin
+        case (state)
+            IDLE: 
+            LOADING:
+            PROCESSING:
+            DONE:
+        endcase
+    end
+
     // sequential block for computing rounds
     always @(posedge i_clk) begin
         
@@ -48,12 +64,15 @@ module tea_accel(
             o_axis_valid_m <= 0;
             o_axis_data_m <= 0;
         
-        // 
-        end else if () begin
+        // LOADING handling
+        end else if (state == LOADING) begin
+        
+        // PROCESSING handling
+        end else if (state == PROCESSING) begin
+        
+        // DONE handling
+        end else if (state == DONE) begin
         
         end
     end
-
-    // - - - - - STAGE 1 - - - - - //
-    // 
 endmodule
