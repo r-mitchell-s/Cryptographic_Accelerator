@@ -38,12 +38,17 @@ module tea_accel(
     
     // sequential block for computing rounds
     always @(posedge i_clk) begin
+        
+        // reset handling
         if (i_rst) begin
             state <= IDLE;
             round_counter <= 0;
+            output_data_reg <= 0;
             o_axis_ready_s <= 0;
             o_axis_valid_m <= 0;
             o_axis_data_m <= 0;
+        
+        // 
         end else if () begin
         
         end
