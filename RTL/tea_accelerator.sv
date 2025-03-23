@@ -1,6 +1,6 @@
 // Author: Mitchell Sharum
 // Date Created: 3/2/2025
-// Purpose: The TEA accekerator itself, the topmost level due to the limited size of the harware
+// Purpose: The TEA accelerator itself, the topmost level due to the limited size of the harware
 
 module tea_accelerator(
     
@@ -42,9 +42,9 @@ module tea_accelerator(
         // assign the updated sum to a new_sum variable
         new_sum = sum + DELTA;
 
-        // always be calculating the next values of the v0 and v1 registers
+        // rememver you ABCs (always be calculating) for next values of the v0 and v1 registers. v1 is computed using the next v0 value
         v0_next = v0 + (((v1 << 4) + k0) ^ (v1 + new_sum) ^ ((v1 >> 5) + k1));
-        v1_next = v1 + (((v0 << 4) + k2) ^ (v0 + new_sum) ^ ((v0 >> 5) + k3));
+        v1_next = v1 + (((v0_next << 4) + k2) ^ (v0_next + new_sum) ^ ((v0_next >> 5) + k3));
 
         case (state)
             
@@ -144,7 +144,7 @@ module tea_accelerator(
                 // PROCESSING handling
                 PROCESSING: begin
 
-                    // increent the sum by DELTA
+                    // increment the sum by DELTA
                     sum <= sum + DELTA;
 
                     // process the current round
@@ -161,15 +161,16 @@ module tea_accelerator(
                     // output assignment - concatenate the v0 and v1
                     output_data <= {v0,v1};
 
-                    // tell downstream module we are ready to transmit if we are done and receive the downstream ready signal
-                    if (o_axis_valid_m && i_axis_ready_m) begin
-                        o_axis_valid_m <= 1'b0;
+                    // Simplified valid logic
+                    if (i_axis_ready_m) begin
 
-                    // if we have gitten the ready signal from downstream module, then we wait
-                    end else if (!o_axis_valid_m) begin
-                        o_axis_valid_m <= 1'b1;
+                        // deassert when downstream is ready, as we are transmitting away our valid data
+                        o_axis_valid_m <= 1'b0;  
+                    end else begin
+
+                        // assert valid until transmission occurs though
+                        o_axis_valid_m <= 1'b1; 
                     end
-                
                 end
             endcase
         end
