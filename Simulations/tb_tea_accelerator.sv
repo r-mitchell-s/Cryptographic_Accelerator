@@ -36,10 +36,22 @@ module tb_tea_accelerator;
         .o_axis_data_m(o_axis_data_m));
     
     // coverage tracking variables
-    integer test_count;
-    integer pass_count;
-    integer fail_count;
+    integer test_count = 0;
+    integer pass_count = 0;
+    integer fail_count = 0;
 
+    // file handle for CSV file
+    integer test_file;
+
+    // temporary variables to hold CSV values
+    integer csv_key0, csv_key1, csv_key2, csv_key3;
+    integer csv_input0, csv_input1;
+    integer csv_exp0, csv_exp1;
+    logic [127:0] key;
+    logic [63:0]  input_data;
+    logic [63:0]  expected_output;
+    logic [63:0]  dut_output;
+ 
     // - - - - -  DRIVING LOGIC - - - - - //
 
     // clock generation block
@@ -58,9 +70,9 @@ module tb_tea_accelerator;
         $dumpvars(0, tb_tea_accelerator);
 
         // open test vectors file
-        test_vectors_file = $fopen("test_vectors.txt", "r");
-        if (!test_vectors_file) begin
-            $display("Error: Could not open test_vectors.txt");
+        test_file = $fopen("test.csv", "r");
+        if (!test_file) begin
+            $display("Error: Could not open test.csv");
             $finish;
         end
         
@@ -82,18 +94,21 @@ module tb_tea_accelerator;
         #5;
 
    
-       // process each test vector in the input file
-        while (!$feof(test_vectors_file)) begin
-            logic [127:0] key;
-            logic [63:0] input_data;
-            logic [63:0] expected_output;
+        // process each test vector in the input file
+        while (!$feof(test_file)) begin
             integer status;
             
-            // read test vector from file
-            status = $fscanf(test_vectors_file, "%h %h", key, input_data);
-        
+            // four key words, two input words, and two expected output words.
+            status = $fscanf(test_file, "%d,%d,%d,%d,%d,%d,%d,%d", 
+                    csv_key0, csv_key1, csv_key2, csv_key3,
+                    csv_input0, csv_input1, csv_exp0, csv_exp1);
+               
             // if the read successfully gets key and data, then proceed
-            if (status == 2) begin 
+            if (status == 8) begin 
+                // combine key and input sections
+                key = {csv_key0, csv_key1, csv_key2, csv_key3};
+                input_data = {csv_input0, csv_input1};
+                expected_output = {csv_exp0, csv_exp1};
 
                 // load key and input
                 i_key = key;
@@ -104,13 +119,13 @@ module tb_tea_accelerator;
                 i_axis_valid_s = 1;
                 @(posedge i_clk);
                 i_axis_valid_s = 0;
-                
+
                 // Wait for output to be valid and capture it in the vriable to be compared
                 wait(o_axis_valid_m);
-                logic [63:0] dut_output = o_axis_data_m;
+                dut_output = o_axis_data_m; // ?
                 
                 // run golden model to get expected output for the same test vector
-                run_golden_model(key, input_data, expected_output);
+                //run_golden_model(key, input_data, expected_output);
                 
                 // compare outputs
                 compare_outputs(dut_output, expected_output);
@@ -118,16 +133,17 @@ module tb_tea_accelerator;
                 // signal ready for next cycle
                 i_axis_ready_m = 1;
                 @(posedge i_clk);
+                i_axis_ready_m = 0;
                 
             // error handling
-            end else if (!$feof(test_vectors_file)) begin
+            end else if (!$feof(test_file)) begin
                 $display("Error: Invalid test vector format");
-                break;
+                $finish;
             end
         end
         
         // close all files
-        $fclose(test_vectors_file);
+        $fclose(test_file);
         
         // print test summary
         $display("\n=== Test Summary ===");
@@ -140,42 +156,42 @@ module tb_tea_accelerator;
         $finish;
     end
 
-    // task to run the golden model. Will probably need to be changed
-    task run_golden_model(input [127:0] key, input [63:0] data, output [63:0] result);
-        integer status;
-        string command;
-        integer model_output_file;
-        
-        // execute the cpp model using the stimulus from the testbench
-        status = $system("./tea_golden_model %h %h", key, data);
-        
-        // error handling for cpp execution
-        if (status != 0) begin
-            $display("Error: Golden model execution failed with status %d", status);
-            result = 64'hx; // set result to unknown on error so we def won't pass test
-        end else begin
-
-            // read the result from the temporary output file created by the C++ model
-            model_output_file = $fopen("model_output.tmp", "r");
-            
-            // error handling (again)
-            if (!model_output_file) begin
-                $display("Error: Could not open model output file");
-                result = 64'hx;
-            
-            // actual read logic to extract the output from golden model
-            end else begin
-                status = $fscanf(model_output_file, "%h", result);
-                $fclose(model_output_file);
-                
-                // more error handling yay
-                if (status != 1) begin
-                    $display("Error: Failed to read golden model output");
-                    result = 64'hx;
-                end
-            end
-        end
-    endtask
+//    // task to run the golden model. Will probably need to be changed
+//    task run_golden_model(input [127:0] key, input [63:0] data, output [63:0] result);
+//        integer status;
+//        string command;
+//        integer model_output_file;
+//        
+//        // execute the cpp model using the stimulus from the testbench
+//        status = $system("./tea_golden_model %h %h", key, data);
+//        
+//        // error handling for cpp execution
+//        if (status != 0) begin
+//            $display("Error: Golden model execution failed with status %d", status);
+//            result = 64'hx; // set result to unknown on error so we def won't pass test
+//        end else begin
+//
+//            // read the result from the temporary output file created by the C++ model
+//            model_output_file = $fopen("model_output.tmp", "r");
+//            
+//            // error handling (again)
+//            if (!model_output_file) begin
+//                $display("Error: Could not open model output file");
+//                result = 64'hx;
+//            
+//            // actual read logic to extract the output from golden model
+//            end else begin
+//                status = $fscanf(model_output_file, "%h", result);
+//                $fclose(model_output_file);
+//                
+//                // more error handling yay
+//                if (status != 1) begin
+//                    $display("Error: Failed to read golden model output");
+//                    result = 64'hx;
+//                end
+//            end
+//        end
+//    endtask
     
     //task to compare golden output to the DUT output
     task compare_outputs(input [63:0] dut_out, input [63:0] golden_out);
@@ -193,7 +209,7 @@ module tb_tea_accelerator;
         end
         
         // print result to console
-        $fdisplay("%0d,%h,%h,%s", test_count, dut_out, golden_out, (dut_out === golden_out) ? "PASS" : "FAIL");
+        $display("%0d,%h,%h,%s", test_count, dut_out, golden_out, (dut_out === golden_out) ? "PASS" : "FAIL");
     endtask
 
 endmodule
