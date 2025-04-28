@@ -1,4 +1,5 @@
-#include <cstdint>
+//#include <cstdint>
+#include <stdint.h>
 
 // encrypts a 64-bit block (stored in an array of two 32-bit values)
 // using a 128-bit key (stored in an array of four 32-bit values).

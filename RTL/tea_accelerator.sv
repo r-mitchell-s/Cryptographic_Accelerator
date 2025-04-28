@@ -1,5 +1,4 @@
 // Author: Mitchell Sharum
-// Date Created: 3/2/2025
 // Purpose: The TEA accelerator itself, the topmost level due to the limited size of the harware
 
 module tea_accelerator(
