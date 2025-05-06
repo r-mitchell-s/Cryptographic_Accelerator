@@ -155,43 +155,6 @@ module tb_tea_accelerator;
         $display("\nSimulation completed.");
         $finish;
     end
-
-//    // task to run the golden model. Will probably need to be changed
-//    task run_golden_model(input [127:0] key, input [63:0] data, output [63:0] result);
-//        integer status;
-//        string command;
-//        integer model_output_file;
-//        
-//        // execute the cpp model using the stimulus from the testbench
-//        status = $system("./tea_golden_model %h %h", key, data);
-//        
-//        // error handling for cpp execution
-//        if (status != 0) begin
-//            $display("Error: Golden model execution failed with status %d", status);
-//            result = 64'hx; // set result to unknown on error so we def won't pass test
-//        end else begin
-//
-//            // read the result from the temporary output file created by the C++ model
-//            model_output_file = $fopen("model_output.tmp", "r");
-//            
-//            // error handling (again)
-//            if (!model_output_file) begin
-//                $display("Error: Could not open model output file");
-//                result = 64'hx;
-//            
-//            // actual read logic to extract the output from golden model
-//            end else begin
-//                status = $fscanf(model_output_file, "%h", result);
-//                $fclose(model_output_file);
-//                
-//                // more error handling yay
-//                if (status != 1) begin
-//                    $display("Error: Failed to read golden model output");
-//                    result = 64'hx;
-//                end
-//            end
-//        end
-//    endtask
     
     //task to compare golden output to the DUT output
     task compare_outputs(input [63:0] dut_out, input [63:0] golden_out);
